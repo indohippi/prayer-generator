@@ -21,7 +21,7 @@ function PrayerForm() {
     additionalDetails: '',
     prayerLength: ''
   });
-  const [generatedPrayer, setGeneratedPrayer] = useState()
+  const [generatedPrayer, setGeneratedPrayer] = useState('');
 
   const handleChange = (e) => {
     const { name, value, options } = e.target;
@@ -85,11 +85,11 @@ function PrayerForm() {
       });
   
       const data = await response.json();
-  
       if (!response.ok) {
         throw new Error(`Error: ${data.message}`);
       }
-  
+
+      setGeneratedPrayer(data.response);
       console.log('Generated Prayer:', data.response); // Adjusted to match the backend's response structure
       // Handle the successful response data here, like displaying it in the UI
     } catch (error) {

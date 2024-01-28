@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChakraProvider, Box, VStack, Heading, Text, Container } from '@chakra-ui/react';
 import PrayerForm from './PrayerForm';
 import PrayerDisplay from './PrayerDisplay';
 
 function App() {
+  // State to store the prayer text
+  const [prayer, setPrayer] = useState('');
+
   return (
     <ChakraProvider>
       <Box textAlign="center" fontSize="xl">
@@ -13,8 +16,8 @@ function App() {
             <Text>
               Welcome to the Personalized Prayer Generator. Fill out the form below and receive a custom prayer tailored to your needs.
             </Text>
-            <PrayerForm />
-            <PrayerDisplay />
+            <PrayerForm setPrayer={setPrayer} /> {/* Passing setPrayer to PrayerForm */}
+            <PrayerDisplay prayer={prayer} /> {/* Passing prayer to PrayerDisplay */}
           </VStack>
         </Container>
       </Box>
