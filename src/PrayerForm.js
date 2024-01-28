@@ -8,6 +8,7 @@ import {
   VStack,
   Textarea
 } from '@chakra-ui/react';
+import PrayerDisplay from './PrayerDisplay';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://ec2-3-21-122-71.us-east-2.compute.amazonaws.com:3000/generate-text';
 
@@ -20,10 +21,22 @@ function PrayerForm() {
     additionalDetails: '',
     prayerLength: ''
   });
+  const [generatedPrayer, setGeneratedPrayer] = useState()
 
   const handleChange = (e) => {
-    setPrayerRequest({ ...prayerRequest, [e.target.name]: e.target.value });
-  };
+    const { name, value, options } = e.target;
+  
+    if (name === 'focus') {
+      // Handle multiple selection for focus
+      const selectedOptions = Array.from(options)
+        .filter(option => option.selected)
+        .map(option => option.value);
+      setPrayerRequest(prevState => ({ ...prevState, focus: selectedOptions }));
+    } else {
+      // Handle single value fields
+      setPrayerRequest(prevState => ({ ...prevState, [name]: value }));
+    }
+  };  
 
   const handleFocusChange = (e) => {
     const options = e.target.options;
@@ -55,22 +68,35 @@ function PrayerForm() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const prompt = buildPromptFromState(prayerRequest);
-
+    const userPrompt = buildPromptFromState(prayerRequest);
+  
+    const messagesPayload = [{
+      role: "user",
+      content: userPrompt
+    }];
+  
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ messages: messagesPayload }), // Sending messages array
       });
+  
       const data = await response.json();
-      // Handle the response data here
+  
+      if (!response.ok) {
+        throw new Error(`Error: ${data.message}`);
+      }
+  
+      console.log('Generated Prayer:', data.response); // Adjusted to match the backend's response structure
+      // Handle the successful response data here, like displaying it in the UI
     } catch (error) {
       console.error("Error making API call: ", error);
     }
-  };
+  };  
+
 
   return (
     <VStack as="form" onSubmit={handleSubmit} spacing={4}>
