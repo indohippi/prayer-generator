@@ -23,7 +23,7 @@ function App() {
       </Box>
       <Box p={4}>
         <Text align="center">
-          Made with ❤️ using Chakra UI
+          Copyright Heavenly Wave 2024
         </Text>
       </Box>
     </ChakraProvider>

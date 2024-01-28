@@ -12,7 +12,7 @@ import PrayerDisplay from './PrayerDisplay';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://ec2-3-21-122-71.us-east-2.compute.amazonaws.com:3000/generate-text';
 
-function PrayerForm() {
+function PrayerForm(props) {
   const [prayerRequest, setPrayerRequest] = useState({
     denomination: '',
     subjectType: '',
@@ -88,6 +88,8 @@ function PrayerForm() {
       if (!response.ok) {
         throw new Error(`Error: ${data.message}`);
       }
+
+      props.setPrayer(data.response);
 
       setGeneratedPrayer(data.response);
       console.log('Generated Prayer:', data.response); // Adjusted to match the backend's response structure
