@@ -1,15 +1,22 @@
 import React from 'react';
-import { Box, Text } from '@chakra-ui/react';
+import { Box, Text, Spinner, Button } from '@chakra-ui/react';
 
-function PrayerDisplay({ prayer }) {
+function PrayerDisplay({ prayer, isLoading, resetForm }) {
+  if (isLoading) {
+    return <Spinner size="xl" />;
+  }
+
   return (
     <Box borderWidth="1px" borderRadius="lg" p={5} boxShadow="lg" mt={5}>
       {prayer ? (
-        <Text fontSize="lg">{prayer}</Text> // Displays the prayer
+        <>
+          <Text fontSize="lg">{prayer}</Text>
+          <Button onClick={resetForm} mt={4}>Reset</Button>
+        </>
       ) : (
         <Text fontSize="lg" color="gray.500">
           Your personalized prayer will be displayed here...
-        </Text> // Displays before a prayer is generated
+        </Text>
       )}
     </Box>
   );

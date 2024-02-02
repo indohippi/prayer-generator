@@ -4,8 +4,13 @@ import PrayerForm from './PrayerForm';
 import PrayerDisplay from './PrayerDisplay';
 
 function App() {
-  // State to store the prayer text
   const [prayer, setPrayer] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const resetForm = () => {
+    setPrayer('');
+    setIsLoading(false); // Ensure to reset the loading state as well
+  };
 
   return (
     <ChakraProvider>
@@ -13,18 +18,11 @@ function App() {
         <Container maxW="container.md">
           <VStack spacing={8} py={10}>
             <Heading>Personalized Prayer Generator</Heading>
-            <Text>
-              Welcome to the Personalized Prayer Generator. Fill out the form below and receive a custom prayer tailored to your needs.
-            </Text>
-            <PrayerForm setPrayer={setPrayer} /> {/* Passing setPrayer to PrayerForm */}
-            <PrayerDisplay prayer={prayer} /> {/* Passing prayer to PrayerDisplay */}
+            <Text>Welcome to the Personalized Prayer Generator. Fill out the form below and receive a custom prayer tailored to your needs.</Text>
+            <PrayerForm setPrayer={setPrayer} setIsLoading={setIsLoading} />
+            <PrayerDisplay prayer={prayer} isLoading={isLoading} resetForm={resetForm} />
           </VStack>
         </Container>
-      </Box>
-      <Box p={4}>
-        <Text align="center">
-          Copyright Heavenly Wave 2024
-        </Text>
       </Box>
     </ChakraProvider>
   );

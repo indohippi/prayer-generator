@@ -7,18 +7,11 @@ import {
   Button,
   VStack,
   Textarea,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure
 } from '@chakra-ui/react';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://ec2-3-21-122-71.us-east-2.compute.amazonaws.com:3000/generate-text';
 
-function PrayerForm({ setPrayer }) {
+function PrayerForm({ setPrayer, setIsLoading }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [prayerRequest, setPrayerRequest] = useState({
     denomination: '',
@@ -28,12 +21,10 @@ function PrayerForm({ setPrayer }) {
     additionalDetails: '',
     prayerLength: ''
   });
-  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const handleChange = (e) => {
     const { name, value, options } = e.target;
-
-    if (name === 'focus') {
+    if (name === 'focus' && options) {
       const selectedOptions = Array.from(options)
         .filter(option => option.selected)
         .map(option => option.value);
@@ -61,23 +52,17 @@ function PrayerForm({ setPrayer }) {
   };
 
   const handleNext = () => {
-    if (currentStep < 6) { // Assuming there are 5 steps
-      setCurrentStep(current => current + 1);
-    } else {
-      handleSubmit();
-    }
+    setCurrentStep(current => current + 1);
   };
 
   const handleSubmit = async () => {
-    onOpen();
+    setIsLoading(true); // Start loading
     const userPrompt = buildPromptFromState(prayerRequest);
 
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: [{ role: "user", content: userPrompt }] }),
       });
 
@@ -90,7 +75,7 @@ function PrayerForm({ setPrayer }) {
     } catch (error) {
       console.error("Error making API call: ", error);
     } finally {
-      onClose();
+      setIsLoading(false); // End loading
     }
   };
 
@@ -149,62 +134,48 @@ function PrayerForm({ setPrayer }) {
             </Select>
           </FormControl>
         );
-        case 5:
-            return (
-              <FormControl id="prayerLength">
-                <FormLabel>Prayer Length</FormLabel>
-                <Select
-                  name="prayerLength"
-                  value={prayerRequest.prayerLength}
-                  onChange={handleChange}
-                  placeholder="Select prayer length"
-                >
-                  <option value="short">Short</option>
-                  <option value="medium">Medium</option>
-                  <option value="long">Long</option>
-                </Select>
-              </FormControl>
-            );
-          case 6:
-            return (
-              <FormControl id="additionalDetails">
-                <FormLabel>Additional Details</FormLabel>
-                <Textarea
-                  name="additionalDetails"
-                  value={prayerRequest.additionalDetails}
-                  onChange={handleChange}
-                  placeholder="Enter any additional details for your prayer"
-                />
-              </FormControl>
-            );               
+      case 5:
+        return (
+          <FormControl id="additionalDetails">
+            <FormLabel>Additional Details</FormLabel>
+            <Textarea
+              name="additionalDetails"
+              value={prayerRequest.additionalDetails}
+              onChange={handleChange}
+              placeholder="Enter any additional details for your prayer"
+            />
+          </FormControl>
+        );
+      case 6:
+        return (
+          <FormControl id="prayerLength">
+            <FormLabel>Prayer Length</FormLabel>
+            <Select
+              name="prayerLength"
+              value={prayerRequest.prayerLength}
+              onChange={handleChange}
+              placeholder="Select prayer length"
+            >
+              <option value="short">Short</option>
+              <option value="medium">Medium</option>
+              <option value="long">Long</option>
+            </Select>
+          </FormControl>
+        );
       default:
-        return null; // This will be replaced by the PrayerDisplay component if needed
+        // This case should not be reached if steps are managed correctly
+        return null;
     }
   };
-  
 
   return (
     <>
-      <VStack as="form" onSubmit={(e) => e.preventDefault()} spacing={4}>
+      <VStack as="form" spacing={4}>
         {renderStepContent()}
         <Button onClick={handleNext} colorScheme="blue">
           {currentStep < 6 ? 'Next' : 'Submit Prayer Request'}
         </Button>
       </VStack>
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Submitting your Prayer Request</ModalHeader>
-          <ModalBody>
-            {/* You can place a spinner here while waiting for the response */}
-          </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={onClose}>
-              Close
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
     </>
   );
 }
