@@ -6,13 +6,20 @@ import {
   Select,
   Button,
   VStack,
-  Textarea
+  Textarea,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure
 } from '@chakra-ui/react';
-import PrayerDisplay from './PrayerDisplay';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://ec2-3-21-122-71.us-east-2.compute.amazonaws.com:3000/generate-text';
 
-function PrayerForm(props) {
+function PrayerForm({ setPrayer }) {
+  const [currentStep, setCurrentStep] = useState(1);
   const [prayerRequest, setPrayerRequest] = useState({
     denomination: '',
     subjectType: '',
@@ -21,32 +28,19 @@ function PrayerForm(props) {
     additionalDetails: '',
     prayerLength: ''
   });
-  const [generatedPrayer, setGeneratedPrayer] = useState('');
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const handleChange = (e) => {
     const { name, value, options } = e.target;
-  
+
     if (name === 'focus') {
-      // Handle multiple selection for focus
       const selectedOptions = Array.from(options)
         .filter(option => option.selected)
         .map(option => option.value);
-      setPrayerRequest(prevState => ({ ...prevState, focus: selectedOptions }));
+      setPrayerRequest(prevState => ({ ...prevState, [name]: selectedOptions }));
     } else {
-      // Handle single value fields
       setPrayerRequest(prevState => ({ ...prevState, [name]: value }));
     }
-  };  
-
-  const handleFocusChange = (e) => {
-    const options = e.target.options;
-    let value = [];
-    for (let i = 0, l = options.length; i < l; i++) {
-      if (options[i].selected) {
-        value.push(options[i].value);
-      }
-    }
-    setPrayerRequest({ ...prayerRequest, focus: value });
   };
 
   const buildPromptFromState = (request) => {
@@ -66,106 +60,152 @@ function PrayerForm(props) {
     return prompt;
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleNext = () => {
+    if (currentStep < 6) { // Assuming there are 5 steps
+      setCurrentStep(current => current + 1);
+    } else {
+      handleSubmit();
+    }
+  };
+
+  const handleSubmit = async () => {
+    onOpen();
     const userPrompt = buildPromptFromState(prayerRequest);
-  
-    const messagesPayload = [{
-      role: "user",
-      content: userPrompt
-    }];
-  
+
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ messages: messagesPayload }), // Sending messages array
+        body: JSON.stringify({ messages: [{ role: "user", content: userPrompt }] }),
       });
-  
+
       const data = await response.json();
       if (!response.ok) {
         throw new Error(`Error: ${data.message}`);
       }
 
-      props.setPrayer(data.response);
-
-      setGeneratedPrayer(data.response);
-      console.log('Generated Prayer:', data.response); // Adjusted to match the backend's response structure
-      // Handle the successful response data here, like displaying it in the UI
+      setPrayer(data.response);
     } catch (error) {
       console.error("Error making API call: ", error);
+    } finally {
+      onClose();
     }
-  };  
+  };
 
-
-  return (
-    <VStack as="form" onSubmit={handleSubmit} spacing={4}>
-      <FormControl id="denomination">
-        <FormLabel>Denomination</FormLabel>
-        <Select name="denomination" onChange={handleChange} placeholder="Select denomination">
-        <option value="baptist">Baptist</option>
-            <option value="orthodox">Orthodox</option>
-            <option value="catholic">Catholic</option>
-            <option value="methodist">Methodist</option>
-            <option value="protestant">Protestant</option>
-            <option value="mormon">Mormon</option>
-            <option value="lutheran">Lutheran</option>
-            <option value="pentecostal">Pentecostal</option>
-            <option value="other">Other/Non-Denominational</option>        </Select>
-      </FormControl>
-
-      <FormControl id="subjectType">
-        <FormLabel>Subject Type</FormLabel>
-        <Select name="subjectType" onChange={handleChange} placeholder="Select subject type">
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <FormControl id="denomination">
+            <FormLabel>Denomination</FormLabel>
+            <Select name="denomination" onChange={handleChange} placeholder="Select denomination">
+              <option value="baptist">Baptist</option>
+              <option value="orthodox">Orthodox</option>
+              <option value="catholic">Catholic</option>
+              <option value="methodist">Methodist</option>
+              <option value="protestant">Protestant</option>
+              <option value="mormon">Mormon</option>
+              <option value="lutheran">Lutheran</option>
+              <option value="pentecostal">Pentecostal</option>
+              <option value="other">Other/Non-Denominational</option>
+            </Select>
+          </FormControl>
+        );
+      case 2:
+        return (
+          <FormControl id="subjectType">
+            <FormLabel>Subject Type</FormLabel>
+            <Select name="subjectType" onChange={handleChange} placeholder="Select subject type">
               <option value="person">Person</option>
               <option value="place">Place</option>
               <option value="event">Event</option>
               <option value="other">Other</option>
             </Select>
-      </FormControl>
+          </FormControl>
+        );
+      case 3:
+        return (
+          <FormControl id="subjectName">
+            <FormLabel>Subject Name</FormLabel>
+            <Input
+              name="subjectName"
+              value={prayerRequest.subjectName}
+              onChange={handleChange}
+              placeholder="Enter the subject name"
+            />
+          </FormControl>
+        );
+      case 4:
+        return (
+          <FormControl id="focus">
+            <FormLabel>Focus Area</FormLabel>
+            <Select name="focus" onChange={handleChange} placeholder="Select focus area" multiple>
+              <option value="gratitude">Gratitude</option>
+              <option value="guidance">Guidance</option>
+              <option value="healing">Healing</option>
+              <option value="other">Other</option>
+            </Select>
+          </FormControl>
+        );
+        case 5:
+            return (
+              <FormControl id="prayerLength">
+                <FormLabel>Prayer Length</FormLabel>
+                <Select
+                  name="prayerLength"
+                  value={prayerRequest.prayerLength}
+                  onChange={handleChange}
+                  placeholder="Select prayer length"
+                >
+                  <option value="short">Short</option>
+                  <option value="medium">Medium</option>
+                  <option value="long">Long</option>
+                </Select>
+              </FormControl>
+            );
+          case 6:
+            return (
+              <FormControl id="additionalDetails">
+                <FormLabel>Additional Details</FormLabel>
+                <Textarea
+                  name="additionalDetails"
+                  value={prayerRequest.additionalDetails}
+                  onChange={handleChange}
+                  placeholder="Enter any additional details for your prayer"
+                />
+              </FormControl>
+            );               
+      default:
+        return null; // This will be replaced by the PrayerDisplay component if needed
+    }
+  };
+  
 
-      {prayerRequest.subjectType && (
-        <FormControl id="subjectName">
-          <FormLabel>{`Name of the ${prayerRequest.subjectType}`}</FormLabel>
-          <Input
-            name="subjectName"
-            onChange={handleChange}
-            placeholder={`Enter the name of the ${prayerRequest.subjectType}`}
-          />
-        </FormControl>
-      )}
-
-      <FormControl id="focus">
-        <FormLabel>Focus Area</FormLabel>
-        <Select name="focus" onChange={handleChange} placeholder="Select focus area">
-        <option value="gratitude">Gratitude</option>
-            <option value="guidance">Guidance</option>
-            <option value="healing">Healing</option>
-            <option value="other">Other</option>        </Select>
-      </FormControl>
-
-      <FormControl id="additionalDetails">
-        <FormLabel>Prayer Details</FormLabel>
-        <Textarea
-          name="additionalDetails"
-          onChange={handleChange}
-          placeholder="Enter additional details for your prayer"
-        />
-      </FormControl>
-
-      <FormControl id="prayerLength">
-        <FormLabel>Prayer Length</FormLabel>
-        <Select name="prayerLength" onChange={handleChange} placeholder="Select prayer length">
-          <option value="short">Short</option>
-          <option value="medium">Medium</option>
-          <option value="long">Long</option>
-        </Select>
-      </FormControl>
-
-      <Button type="submit" colorScheme="blue">Submit Prayer Request</Button>
-    </VStack>
+  return (
+    <>
+      <VStack as="form" onSubmit={(e) => e.preventDefault()} spacing={4}>
+        {renderStepContent()}
+        <Button onClick={handleNext} colorScheme="blue">
+          {currentStep < 6 ? 'Next' : 'Submit Prayer Request'}
+        </Button>
+      </VStack>
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Submitting your Prayer Request</ModalHeader>
+          <ModalBody>
+            {/* You can place a spinner here while waiting for the response */}
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={onClose}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
   );
 }
 
